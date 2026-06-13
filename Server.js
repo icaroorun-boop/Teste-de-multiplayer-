@@ -7,14 +7,16 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// serve os arquivos da pasta public
+// servir frontend
 app.use(express.static(path.join(__dirname, "public")));
 
 io.on("connection", (socket) => {
     console.log("Usuário conectado:", socket.id);
 
-    // entra no chat
     socket.on("entrar", (nick) => {
+        nick = String(nick || "").trim().slice(0, 20);
+        if (!nick) return;
+
         socket.data.nick = nick;
 
         io.emit("chat message", {
@@ -23,18 +25,20 @@ io.on("connection", (socket) => {
         });
     });
 
-    // mensagem normal
     socket.on("chat message", (msg) => {
-        const nick = socket.data.nick || "Anon";
+        const nick = socket.data.nick;
+        if (!nick) return;
+
+        const text = String(msg || "").trim();
+        if (!text) return;
 
         io.emit("chat message", {
             system: false,
             nick,
-            text: msg
+            text: text.slice(0, 500)
         });
     });
 
-    // saiu
     socket.on("disconnect", () => {
         const nick = socket.data.nick;
 
@@ -47,7 +51,6 @@ io.on("connection", (socket) => {
     });
 });
 
-// IMPORTANTE pro Render
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log("Servidor rodando na porta", PORT);
