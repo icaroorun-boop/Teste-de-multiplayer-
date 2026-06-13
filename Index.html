@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Chat Online</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#222;
+    color:white;
+}
+
+/* MENU */
+#menu{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    gap:10px;
+}
+
+#nickname{
+    padding:10px;
+    font-size:18px;
+    width:200px;
+}
+
+#entrar{
+    padding:10px 20px;
+    font-size:18px;
+    cursor:pointer;
+}
+
+/* CHAT */
+#chatTela{
+    display:none;
+    height:100vh;
+    flex-direction:column;
+}
+
+#topo{
+    background:#111;
+    padding:15px;
+    text-align:center;
+    font-size:20px;
+}
+
+#mensagens{
+    flex:1;
+    overflow-y:auto;
+    padding:10px;
+}
+
+.msg{
+    margin:5px 0;
+    padding:8px 10px;
+    background:#333;
+    border-radius:8px;
+    word-break:break-word;
+}
+
+.sys{
+    background:#444;
+    color:#ddd;
+    font-style:italic;
+}
+
+#barra{
+    display:flex;
+    gap:6px;
+    padding:8px;
+    background:#111;
+}
+
+#texto{
+    flex:1;
+    padding:15px;
+    font-size:16px;
+}
+
+#enviar{
+    width:100px;
+    font-size:16px;
+    cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="menu">
+    <h1>Chat Online</h1>
+
+    <input
+        id="nickname"
+        placeholder="Seu nickname"
+        maxlength="20">
+
+    <button id="entrar">
+        Entrar
+    </button>
+</div>
+
+<div id="chatTela">
+
+    <div id="topo">
+        Chat Global
+    </div>
+
+    <div id="mensagens"></div>
+
+    <div id="barra">
+        <input
+            id="texto"
+            placeholder="Digite uma mensagem..."
+            maxlength="500">
+
+        <button id="enviar">
+            Enviar
+        </button>
+    </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+let nick = "";
+
+const menu = document.getElementById("menu");
+const chatTela = document.getElementById("chatTela");
+const mensagens = document.getElementById("mensagens");
+const texto = document.getElementById("texto");
+const nicknameInput = document.getElementById("nickname");
+
+function adicionarMensagem(dados){
+    const msg = document.createElement("div");
+    msg.className = "msg" + (dados.system ? " sys" : "");
+
+    if(dados.system){
+        msg.textContent = dados.text;
+    }else{
+        msg.textContent = `${dados.nick}: ${dados.text}`;
+    }
+
+    mensagens.appendChild(msg);
+    mensagens.scrollTop = mensagens.scrollHeight;
+}
+
+document.getElementById("entrar").onclick = () => {
+    nick = nicknameInput.value.trim();
+
+    if(nick === ""){
+        alert("Escolha um nickname!");
+        return;
+    }
+
+    menu.style.display = "none";
+    chatTela.style.display = "flex";
+
+    socket.emit("entrar", nick);
+    texto.focus();
+};
+
+function enviarMensagem(){
+    const valor = texto.value.trim();
+    if(valor === "") return;
+
+    socket.emit("chat message", valor);
+    texto.value = "";
+    texto.focus();
+}
+
+document.getElementById("enviar").onclick = enviarMensagem;
+
+texto.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){
+        enviarMensagem();
+    }
+});
+
+socket.on("chat message", (dados) => {
+    adicionarMensagem(dados);
+});
+</script>
+
+</body>
+</html>
